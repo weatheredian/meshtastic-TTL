@@ -71,6 +71,13 @@ def main():
     local = SerialInterface(serial_port)
     print("SerialInterface setup for listening and sending.")
 
+    # Set node GPS coordinates
+    latitude = 37.2431
+    longitude = -115.7930
+    altitude = 0  # Set altitude to 0 or your desired value
+    local.sendPosition(latitude, longitude, altitude)
+    print(f"Set node GPS position to {latitude}, {longitude}")
+
     # Send intro message
     intro_message = "hello from WeatheredOne"
     local.sendText(intro_message, destination_node_id)
