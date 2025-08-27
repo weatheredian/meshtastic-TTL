@@ -1,3 +1,4 @@
+import RPi.GPIO as GPIO
 import time
 import sys
 import threading
@@ -49,6 +50,11 @@ def on_receive(packet, interface, node_list):
         pass  # Ignore UnicodeDecodeError silently
 
 def main():
+    # Setup GPIO
+    GPIO.setmode(GPIO.BCM)
+    NODE_LOST_PIN = 17  # Use GPIO 17, change if needed
+    GPIO.setup(NODE_LOST_PIN, GPIO.OUT)
+    GPIO.output(NODE_LOST_PIN, GPIO.LOW)
     print(f"Using serial port: {serial_port}")
 
     # Retrieve and parse node information
@@ -107,8 +113,10 @@ def main():
                 else:
                     # Countdown finished without 'okay'
                     print("node lost, node lost, node lost")
+                    GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
                     local.sendText("node lost, terminating", destination_node_id)
                     local.close()
+                    GPIO.cleanup()
                     sys.exit(0)
             ttl -= message_interval
 
