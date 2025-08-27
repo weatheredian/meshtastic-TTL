@@ -7,7 +7,7 @@ from meshtastic.serial_interface import SerialInterface
 from meshtastic import portnums_pb2
 
 serial_port = '/dev/ttyUSB0'  # Replace with your Meshtastic device's serial port
-destination_node_id = "!fa447b24"  # Replace with your target node's ID
+destination_node_id = "!bdf0a688"  # Replace with your target node's ID
 time_to_live = 18000  # TTL value in seconds
 message_interval = 10  # interval between messages in seconds
 
