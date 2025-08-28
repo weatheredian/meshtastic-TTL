@@ -1,4 +1,6 @@
-#import RPi.GPIO as GPIO
+#THIS IS THE SCRIPT FOR THE RECEIVING DEVICE, like a base station
+#the base station will receive countdown messages from the embedded device, and reply with okay messages.
+
 import time
 import sys
 import threading
@@ -7,7 +9,7 @@ from meshtastic.serial_interface import SerialInterface
 from meshtastic import portnums_pb2
 
 serial_port = '/dev/ttyUSB0'  # Replace with your Meshtastic device's serial port
-destination_node_id = "!050da7d8"  # Replace with your target node's ID
+destination_node_id = "!43b67cec"  # Replace with your target node's ID, the embedded device (TX)
 time_to_live = 18000  # TTL value in seconds
 message_interval = 10  # interval between messages in seconds
 
@@ -41,20 +43,16 @@ def on_receive(packet, interface, node_list):
             fromnum = packet['fromId']
             shortname = next((node['user']['shortName'] for node in node_list if node['num'] == fromnum), 'Unknown')
             print(f"{shortname}: {message}")
-            # Signal event if 'okay' is found in message from destination node
-            #if fromnum == destination_node_id and 'okay' in message.lower():
-            #    okay_event.set()
+            # Reply 'okay' to any message received from the destination node
+            if fromnum == destination_node_id:
+                interface.sendText("okay", destination_node_id)
+                print(f"Replied 'okay' to {destination_node_id}")
     except KeyError:
         pass  # Ignore KeyError silently
     except UnicodeDecodeError:
         pass  # Ignore UnicodeDecodeError silently
 
 def main():
-    # Setup GPIO
-    #GPIO.setmode(GPIO.BCM)
-    #NODE_LOST_PIN = 17  # Use GPIO 17, change if needed
-    #GPIO.setup(NODE_LOST_PIN, GPIO.OUT)
-    #GPIO.output(NODE_LOST_PIN, GPIO.LOW)
     print(f"Using serial port: {serial_port}")
 
     # Retrieve and parse node information
@@ -77,51 +75,19 @@ def main():
     local = SerialInterface(serial_port)
     print("SerialInterface setup for listening and sending.")
 
-    # Set node GPS coordinates
-    latitude = 37.2431
-    longitude = -115.7930
-    altitude = 0  # Set altitude to 0 or your desired value
-    local.sendPosition(latitude, longitude, altitude)
-    print(f"Set node GPS position to {latitude}, {longitude}")
-
     # Send intro message
     intro_message = "hello from HomeBeacon"
     local.sendText(intro_message, destination_node_id)
     print(f"Sent intro message to {destination_node_id}")
 
-    # TTL message loop
-    
+    # Only listen and reply once
     try:
-        for i in range(int(time_to_live / message_interval)):
-            okay_message = f"okay"
-            okay_event.clear()
-            local.sendText(okay_message, destination_node_id)
-            print(f"Sent message to {destination_node_id}: {okay_message}")
-
-            # Wait for 'okay' message for up to message_interval seconds
-            waited = True
-            if not waited:
-                # Start 30 second countdown for 'okay' message
-                print("No 'okay' received, starting 30 second countdown...")
-                countdown = 30
-                while countdown > 0:
-                    # Wait 1 second at a time, so we can break early if 'okay' arrives
-                    if okay_event.wait(timeout=1):
-                        print("'okay' received during countdown, resuming normal mode.")
-                        break
-                    countdown -= 1
-                else:
-                    # Countdown finished without 'okay'
-                    print("node lost, node lost, node lost")
-                    #GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
-                    #local.sendText("node lost, terminating", destination_node_id)
-                    #local.close()
-                    #GPIO.cleanup()
-                    sys.exit(0)
-
-        # Keep the script running to listen for messages
-        while True:
+        while not okay_event.is_set():
             sys.stdout.flush()
+            time.sleep(1)
+        # After replying once, keep listening (or exit if you want)
+        print("Okay reply sent, RX script will now idle.")
+        while True:
             time.sleep(1)
     except KeyboardInterrupt:
         print("Script terminated by user")
