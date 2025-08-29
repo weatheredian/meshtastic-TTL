@@ -1,6 +1,6 @@
 #THIS IS THE SCRIPT FOR THE EMBEDDED DEVICE
 #the embedded device will send countdown messages to the base station
-
+import RPi.GPIO as GPIO
 import time
 import sys
 import threading
@@ -52,9 +52,10 @@ def on_receive(packet, interface, node_list):
         pass  # Ignore UnicodeDecodeError silently
 
 def main():
+    grace_points = 5
     # Setup GPIO
     GPIO.setmode(GPIO.BCM)
-    NODE_LOST_PIN = 17  # Use GPIO 17, change if needed
+    NODE_LOST_PIN = 18  # Use GPIO 17, change if needed
     GPIO.setup(NODE_LOST_PIN, GPIO.OUT)
     GPIO.output(NODE_LOST_PIN, GPIO.LOW)
     print(f"Using serial port: {serial_port}")
@@ -104,8 +105,8 @@ def main():
             waited = okay_event.wait(timeout=message_interval)
             if not waited:
                 # Start 30 second countdown for 'okay' message
-                print("No 'okay' received, starting 30 second countdown...")
-                countdown = 30
+                print("No 'okay' received, starting 60 second countdown...")
+                countdown = 60
                 while countdown > 0:
                     # Wait 1 second at a time, so we can break early if 'okay' arrives
                     if okay_event.wait(timeout=1):
@@ -114,12 +115,16 @@ def main():
                     countdown -= 1
                 else:
                     # Countdown finished without 'okay'
-                    print("node lost, node lost, node lost")
-                    GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
-                    local.sendText("node lost, terminating", destination_node_id)
-                    local.close()
-                    GPIO.cleanup()
-                    sys.exit(0)
+                    print("countdown ended, retracting grace point")
+                    local.sendText("reducing one grace point", destination_node_id)
+                    grace_points = grace_points - 1
+                    if grace_points == 0:
+                        print("node lost, node lost, node lost")
+                        GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
+                        local.sendText("node lost, terminating", destination_node_id)
+                        local.close()
+                        GPIO.cleanup()
+                        sys.exit(0)
             ttl -= message_interval
 
         # Keep the script running to listen for messages
