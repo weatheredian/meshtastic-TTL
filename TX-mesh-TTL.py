@@ -104,16 +104,17 @@ def main():
             # Wait for 'okay' message for up to message_interval seconds
             waited = okay_event.wait(timeout=message_interval)
             if not waited:
-                # Start 30 second countdown for 'okay' message
+                # Start 60 second countdown for 'okay' message
                 print("No 'okay' received, starting 60 second countdown...")
                 countdown = 60
+                countdown_okay = False
                 while countdown > 0:
-                    # Wait 1 second at a time, so we can break early if 'okay' arrives
                     if okay_event.wait(timeout=1):
                         print("'okay' received during countdown, resuming normal mode.")
+                        countdown_okay = True
                         break
                     countdown -= 1
-                else:
+                if not countdown_okay:
                     # Countdown finished without 'okay'
                     print("countdown ended, retracting grace point")
                     local.sendText("reducing one grace point", destination_node_id)
