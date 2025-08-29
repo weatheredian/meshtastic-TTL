@@ -127,6 +127,7 @@ def main():
                         GPIO.cleanup()
                         sys.exit(0)
             ttl -= message_interval
+            time.sleep(message_interval)
 
         # Keep the script running to listen for messages
         while True:
