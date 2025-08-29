@@ -150,8 +150,7 @@ def main():
                         GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
                         local.sendText("node lost, terminating", destination_node_id)
                         local.close()
-                        GPIO.cleanup()
-                        sys.exit(0)
+                        # Do NOT call GPIO.cleanup() or sys.exit(0); let the script continue running
             ttl -= message_interval
             time.sleep(message_interval)
 
