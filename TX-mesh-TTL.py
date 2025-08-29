@@ -52,7 +52,7 @@ def on_receive(packet, interface, node_list):
         pass  # Ignore UnicodeDecodeError silently
 
 def main():
-    grace_points = 5
+    grace_points = 3
     # Setup GPIO
     GPIO.setmode(GPIO.BCM)
     NODE_LOST_PIN = 18  # Use GPIO 17, change if needed
@@ -98,6 +98,32 @@ def main():
         for i in range(int(time_to_live / message_interval)):
             ttl_message = f"remaining time: {ttl} seconds"
             okay_event.clear()
+            # Check if serial device is connected before sending
+            try:
+                if not local.isConnected:
+                    print("Serial device not connected! Attempting to reconnect...")
+                    local.close()
+                    countdown = 30
+                    reconnected = False
+                    while countdown > 0:
+                        time.sleep(1)
+                        try:
+                            local = SerialInterface(serial_port)
+                            if local.isConnected:
+                                print("Reconnected to serial device.")
+                                reconnected = True
+                                break
+                        except Exception as e:
+                            print(f"Reconnect attempt failed: {e}")
+                        countdown -= 1
+                    if not reconnected:
+                        print("Failed to reconnect after 30 seconds. Setting GPIO and terminating.")
+                        GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
+                        sys.exit(1)
+            except Exception as e:
+                print(f"Error checking serial device: {e}")
+                GPIO.output(NODE_LOST_PIN, GPIO.HIGH)
+                sys.exit(1)
             local.sendText(ttl_message, destination_node_id)
             print(f"Sent message to {destination_node_id}: {ttl_message}")
 
