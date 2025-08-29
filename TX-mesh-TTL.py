@@ -117,7 +117,7 @@ def main():
                 if not countdown_okay:
                     # Countdown finished without 'okay'
                     print("countdown ended, retracting grace point")
-                    local.sendText("reducing one grace point", destination_node_id)
+                    #local.sendText("reducing one grace point", destination_node_id)
                     grace_points = grace_points - 1
                     if grace_points == 0:
                         print("node lost, node lost, node lost")
